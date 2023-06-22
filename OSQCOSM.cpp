@@ -6,27 +6,21 @@
 #include <stdio.h>
 #include <ctype.h>
 
+#define SHoW_IMAGES
+
+
 using namespace cv;
 using namespace std;
 using namespace cv::motempl;
 
-static void help(void)
-{
-    printf(
-        "\nThis program demonstrated the use of motion templates -- basically using the gradients\n"
-        "of thresholded layers of decaying frame differencing. New movements are stamped on top with floating system\n"
-        "time code and motions too old are thresholded away. This is the 'motion history file'. The program reads from the camera of your choice or from\n"
-        "a file. Gradients of motion history are used to detect direction of motion etc\n"
-        "Usage :\n"
-        "./motempl [camera number 0-n or file name, default is camera 0]\n"
-        );
-}
+
 // various tracking parameters (in seconds)
 const double MHI_DURATION = 5;
 const double MAX_TIME_DELTA = 0.5;
 const double MIN_TIME_DELTA = 0.05;
 // number of cyclic frame buffer used for motion detection
 // (should, probably, depend on FPS)
+
 
 // ring image buffer
 vector<Mat> buf;
@@ -113,22 +107,15 @@ static void  update_mhi(const Mat& img, Mat& dst, int diff_threshold)
 
         // calculate orientation
         angle = calcGlobalOrientation(orient_roi, mask_roi, mhi_roi, timestamp, MHI_DURATION);
-        angle = 360.0 - angle;  // adjust for images with top-left origin
+        //angle = 360.0 - angle;  // adjust for images with top-left origin
 
         count = norm(silh_roi, NORM_L1);; // calculate number of points within silhouette ROI
 
         // check for the case of little motion
         if (count < comp_rect.width*comp_rect.height * 0.05)
             continue;
-
-        // draw a clock with arrow indicating the direction
-        center = Point((comp_rect.x + comp_rect.width / 2),
-            (comp_rect.y + comp_rect.height / 2));
-
-        circle(img, center, cvRound(magnitude*1.2), color, 3, 16, 0);
-        line(img, center, Point(cvRound(center.x + magnitude*cos(angle*CV_PI / 180)),
-            cvRound(center.y - magnitude*sin(angle*CV_PI / 180))), color, 3, 16, 0);
-    }
+	printf("Angle: %f\n", angle);
+        }
 }
 
 
@@ -136,7 +123,6 @@ int main(int argc, char** argv)
 {
     VideoCapture cap;
 
-    help();
 
     if (argc == 1 || (argc == 2 && strlen(argv[1]) == 1 && isdigit(argv[1][0])))
         cap.open(argc == 2 ? argv[1][0] - '0' : 0);
@@ -157,8 +143,10 @@ int main(int argc, char** argv)
             break;
 
         update_mhi(image, motion, 30);
-        imshow("Image", image);
-        imshow("Motion", motion);
+	#ifdef SHoW_IMAGES
+            imshow("Image", image);
+            imshow("Motion", motion);
+        #endif
 
         if (waitKey(10) >= 0)
             break;
